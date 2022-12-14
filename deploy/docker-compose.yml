@@ -1,0 +1,53 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:8
+    # network_mode: "host" # 如果需要容器使用宿主机IP(内网IP)，则可以配置此项
+    container_name: mysql # 指定容器名称，如果不设置此参数，则由系统自动生成
+    restart: always # 设置容器自启模式
+    command: mysqld
+    networks: 
+      - my-bridge
+    ports:
+      - 3305:3306
+    environment:
+      - TZ=Asia/Shanghai # 设置容器时区与宿主机保持一致
+      - MYSQL_ROOT_PASSWORD=Passw0rd # 设置root密码
+    volumes:
+       - /etc/localtime:/etc/localtime:ro # 设置容器时区与宿主机保持一致
+       - ./mysql/data:/var/lib/mysql # 映射数据库保存目录到宿主机，防止数据丢失
+       - ./mysql/docker-entrypoint-initdb.d/:/docker-entrypoint-initdb.d/ #导入数据库文件
+       - ./mysql/conf/my.conf:/etc/mysql/my.conf # 映射数据库配置文件
+  redis:
+    image: redis:7.0.5-alpine
+    container_name: redis
+    networks:
+      - my-bridge
+    ports:
+      - 6378:6379
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./redis/data:/data
+      - ./redis/conf:/usr/local/etc/redis
+    restart: always
+    command: --save 3600 1 --loglevel warning --requirepass "Passw0rd"
+  mongodb:
+    image: mongo:6.0.2
+    container_name: mongodb
+    restart: always
+    networks:
+      - my-bridge
+    ports:
+      - 27016:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: Passw0rd
+    volumes:
+       - /etc/localtime:/etc/localtime:ro
+       - ./mongodb/datadir:/data/db
+networks:
+ my-bridge:
+   driver: bridge
+   ipam:
+     config:
+     - subnet: 33.33.0.0/16
